@@ -4,15 +4,6 @@ if (NOT GTSAM_BUILD_RUST)
     return()
 endif()
 
-# Generate setup.py.
-file(READ "${PROJECT_SOURCE_DIR}/README.md" README_CONTENTS)
-configure_file(${PROJECT_SOURCE_DIR}/python/setup.py.in
-                ${GTSAM_PYTHON_BUILD_DIRECTORY}/setup.py)
-
-# Supply MANIFEST.in for older versions of Python
-file(COPY ${PROJECT_SOURCE_DIR}/python/MANIFEST.in
-     DESTINATION ${GTSAM_PYTHON_BUILD_DIRECTORY})
-
 set(WRAP_BUILD_TYPE_POSTFIXES ${GTSAM_BUILD_TYPE_POSTFIXES})
 
 include(PybindWrap)
