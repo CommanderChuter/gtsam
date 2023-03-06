@@ -6,8 +6,8 @@ All Rights Reserved
 
 See LICENSE for the license information
 
-Code generator for wrapping a C++ module with Pybind11
-Author: Duy Nguyen Ta, Fan Jiang, Matthew Sklar, Varun Agrawal, and Frank Dellaert
+Code generator for wrapping a C++ module for Rust
+Author: Duy Nguyen Ta, Fan Jiang, Matthew Sklar, Varun Agrawal, and Frank Dellaert, Ryker Chute
 """
 
 # pylint: disable=too-many-arguments, too-many-instance-attributes, no-self-use, no-else-return, too-many-arguments, unused-format-string-argument, line-too-long, consider-using-f-string
@@ -18,6 +18,9 @@ from typing import List
 
 import gtwrap.interface_parser as parser
 import gtwrap.template_instantiator as instantiator
+
+def main():
+    pass
 
 
 class PybindWrapper:
@@ -720,3 +723,7 @@ class PybindWrapper:
         # Generate the C++ code which Pybind11 will use.
         with open(main_module_name, "w", encoding="UTF-8") as f:
             f.write(cc_content)
+
+#TODO: interface script in wrap/scripts
+if __name__ == "__main__":
+    main()
