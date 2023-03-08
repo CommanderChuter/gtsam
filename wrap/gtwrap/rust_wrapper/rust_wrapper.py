@@ -12,13 +12,19 @@ Author: Duy Nguyen Ta, Fan Jiang, Matthew Sklar, Varun Agrawal, Frank Dellaert, 
 
 import os
 import shutil
+import logging as log
+import json
+import pprint
 
 from pathlib import Path
 
 import sys
 pwd_dir = Path(__file__).parent.resolve()
-sys.path.append((pwd_dir.parent / "wrap").name)
+wrap_dir = pwd_dir.parent.parent
+root_dir = wrap_dir.parent
+sys.path.append(str(wrap_dir))
 from gtwrap import interface_parser as parser
+from gtwrap import template_instantiator as instantiator
 
 
 class InterfaceModule():
@@ -37,11 +43,11 @@ class InterfaceModule():
         
     
 
-
 def main():
+    # Set up logging
+    log.basicConfig(level=log.DEBUG)
 
     ## Set running folder to rust folder
-    root_dir = pwd_dir.parent
     gtsam_dir = root_dir / "gtsam"
 
     if Path(os.getcwd()) != Path(pwd_dir):
@@ -49,13 +55,12 @@ def main():
         
     ## Collect interface files
     modules = []
-
     for root, dirs, files in os.walk(gtsam_dir):
         for file in files:
             if file.endswith(".i"):
                 module = InterfaceModule(Path(root) / file, gtsam_dir)
                 modules.append(module)
-                print(module)
+                log.debug(module)
     
 
     ## Instaniate Symbol database
@@ -69,8 +74,17 @@ def main():
 
         ## Parse file
         with open(module.interface, "r", encoding="UTF-8") as file: #TODO: do we need the UTF-8?
-            parse = parser.Module.parseString(file.read())
-            print(parse)
+            content = file.read()
+
+        parse = parser.Module.parseString(content)
+        #TODO: hacked parseString to return ParseResult, in the end will return namespace
+        log.debug(type(parse))
+        log.debug(parse)
+        instance = instantiator.instantiate_namespace(parse[0])
+        log.info(instance)
+
+        #DEBUG
+        exit()
 
         ## Add to Symbol database
 

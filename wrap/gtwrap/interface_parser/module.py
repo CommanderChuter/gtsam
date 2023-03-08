@@ -53,4 +53,4 @@ class Module:
     @staticmethod
     def parseString(s: str) -> ParseResults:
         """Parse the source string and apply the rules."""
-        return Module.rule.parseString(s)[0]
+        return Module.rule.parseString(s)
