@@ -45,7 +45,7 @@ class InterfaceModule():
 
 def main():
     # Set up logging
-    log.basicConfig(level=log.DEBUG)
+    log.basicConfig(level=log.DEBUG, format="%(levelname)s::%(lineno)d\n%(message)s\n")
 
     ## Set running folder to rust folder
     gtsam_dir = root_dir / "gtsam"
@@ -76,12 +76,18 @@ def main():
         with open(module.interface, "r", encoding="UTF-8") as file: #TODO: do we need the UTF-8?
             content = file.read()
 
-        parse = parser.Module.parseString(content)
-        #TODO: hacked parseString to return ParseResult, in the end will return namespace
-        log.debug(type(parse))
-        log.debug(parse)
-        instance = instantiator.instantiate_namespace(parse[0])
-        log.info(instance)
+        # parseString is sappose to return a pyparsing.ParseResult
+        # but instead returns gtwrap.interface_parser.Namespace
+        # example shows that being replaced because with
+        # insatior.instantiate_namepsace
+        # because that also returns Namespace
+        # TLDR: parseString -> Namespace -> instantiate_namespace -> Namespace
+        namespace = parser.Module.parseString(content)
+        log.debug(namespace)
+        namespace = instantiator.instantiate_namespace(namespace)
+        log.debug(namespace)
+
+        #wrapped_namespace, includes = self.wrap_namespace(module)
 
         #DEBUG
         exit()
