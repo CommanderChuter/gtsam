@@ -34,22 +34,24 @@ class InterfaceModule():
         self.name = original.name.replace(".i", "")
         self.top = root.name
         self.path = Path(self.top) / original.relative_to(root).parent
-        self.interface = self.path / (self.name+".i")
-        self.cpp = self.path / (self.name+".cpp")
-        self.rust = self.path / (self.name+".rs")
+        self.interface_file = self.path / (self.name+".i")
+        self.cpp_file = self.path / (self.name+".cpp")
+        self.rust_file = self.path / (self.name+".rs")
+        self.namespace_file = self.path / (self.name+".namespace")
 
     def __repr__(self):
         return "{}::{}\n\t{}\n\t{}".format(self.top, self.name, self.path, self.original)
         
-    
 
 def main():
     # Set up logging
-    log.basicConfig(level=log.DEBUG, format="%(levelname)s::%(lineno)d\n%(message)s\n")
+    log.basicConfig(
+        level=log.INFO,
+        format="%(levelname)s::%(lineno)d\n%(message)s\n"
+    )
 
     ## Set running folder to rust folder
     gtsam_dir = root_dir / "gtsam"
-
     if Path(os.getcwd()) != Path(pwd_dir):
         os.chdir(pwd_dir)
         
@@ -62,18 +64,16 @@ def main():
                 modules.append(module)
                 log.debug(module)
     
-
     ## Instaniate Symbol database
 
     ## For each interface file
     for module in modules:
-
         ## Create file/folder tree
         module.path.mkdir(parents=True, exist_ok=True)
         shutil.copy(module.original, module.path)
 
         ## Parse file
-        with open(module.interface, "r", encoding="UTF-8") as file: #TODO: do we need the UTF-8?
+        with open(module.interface_file, "r", encoding="UTF-8") as file: #TODO: do we need the UTF-8?
             content = file.read()
 
         # parseString is sappose to return a pyparsing.ParseResult
@@ -83,14 +83,26 @@ def main():
         # because that also returns Namespace
         # TLDR: parseString -> Namespace -> instantiate_namespace -> Namespace
         namespace = parser.Module.parseString(content)
-        log.debug(namespace)
-        namespace = instantiator.instantiate_namespace(namespace)
+        namespace:parser.Namespace = instantiator.instantiate_namespace(namespace)
         log.debug(namespace)
 
-        #wrapped_namespace, includes = self.wrap_namespace(module)
+        with open(module.namespace_file, "w") as file:
+            file.write(str(namespace))
+
+        log.info(namespace.full_namespaces())
+
+        exit()
+
+
+        # Dump namespace to file
+
+        ## wrapped_namespace, includes = self.wrap_namespace(module)
+        #namespace
+        #log.info(type(temp))
+        #log.info(temp)
 
         #DEBUG
-        exit()
+        #exit()
 
         ## Add to Symbol database
 

@@ -19,6 +19,19 @@ from typing import List
 import gtwrap.interface_parser as parser
 import gtwrap.template_instantiator as instantiator
 
+# CMake invokation
+cmake_cmd= """
+${GTSAM_PYTHON_TARGET} # target
+"${interface_headers}" # interface_headers
+"gtsam.cpp" # generated_cpp
+"gtsam" # module_name
+"gtsam" # top_namespace
+"${ignore}" # ignore_classes
+${PROJECT_SOURCE_DIR}/python/gtsam/gtsam.tpl
+gtsam # libs
+"gtsam;gtsam_header" # dependencies
+${GTSAM_ENABLE_BOOST_SERIALIZATION} # use_boost_serialization
+"""
 
 class PybindWrapper:
     """
