@@ -77,7 +77,7 @@ class InstantiatedClass(parser.Class):
             "{ctors}\n{static_methods}\n{methods}\n{operators}".format(
                virtual="virtual " if self.is_virtual else '',
                cpp_class=self.to_cpp(),
-               parent_class=self.parent,
+               parent_class=self.parent.name,
                ctors="\n".join([repr(ctor) for ctor in self.ctors]),
                static_methods="\n".join([repr(m)
                                          for m in self.static_methods]),
