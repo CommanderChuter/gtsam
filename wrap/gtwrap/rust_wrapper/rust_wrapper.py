@@ -13,10 +13,8 @@ Author: Duy Nguyen Ta, Fan Jiang, Matthew Sklar, Varun Agrawal, Frank Dellaert, 
 import os
 import shutil
 import logging as log
-import json
-import pprint
-
 from pathlib import Path
+import json
 
 import sys
 pwd_dir = Path(__file__).parent.resolve()
@@ -38,9 +36,19 @@ class InterfaceModule():
         self.cpp_file = self.path / (self.name+".cpp")
         self.rust_file = self.path / (self.name+".rs")
         self.namespace_file = self.path / (self.name+".namespace")
+        self.symbols = {}
 
     def __repr__(self):
         return "{}::{}\n\t{}\n\t{}".format(self.top, self.name, self.path, self.original)
+    
+class Symbol():
+    def __init__(self, obj):
+        self.name = repr(obj)
+        self.status = False
+        self.obj = obj
+
+    def __repr__(self) -> str:
+        return self.name
         
 
 def main():
@@ -65,48 +73,70 @@ def main():
                 log.debug(module)
     
     ## Instaniate Symbol database
+    symboldb = {}
 
     ## For each interface file
     for module in modules:
+
+        log.info(module)
+
         ## Create file/folder tree
         module.path.mkdir(parents=True, exist_ok=True)
         shutil.copy(module.original, module.path)
 
         ## Parse file
-        with open(module.interface_file, "r", encoding="UTF-8") as file: #TODO: do we need the UTF-8?
+        with open(module.interface_file, "r") as file:
             content = file.read()
+        namespace:parser.Namespace = parser.Module.parseString(content)
+        instantiator.instantiate_namespace(namespace)
 
-        # parseString is sappose to return a pyparsing.ParseResult
-        # but instead returns gtwrap.interface_parser.Namespace
-        # example shows that being replaced because with
-        # insatior.instantiate_namepsace
-        # because that also returns Namespace
-        # TLDR: parseString -> Namespace -> instantiate_namespace -> Namespace
-        namespace = parser.Module.parseString(content)
-        namespace:parser.Namespace = instantiator.instantiate_namespace(namespace)
-        log.debug(namespace)
-
+        # Dump namespace to file with tabs
+        ns_raw = str(namespace)
+        ns_tab = ""
+        tab = 0
+        for line in ns_raw.splitlines():
+            if line.count("}"):
+                tab -= line.count("}")
+            ns_tab += (("\t"*tab)+line+"\n")
+            if line.count("{"):
+                tab += line.count("{")
         with open(module.namespace_file, "w") as file:
-            file.write(str(namespace))
+            file.write(ns_tab)
 
-        log.info(namespace.full_namespaces())
+        ## Add to symbols to database
+        symboldb[module.name] = {}
 
-        exit()
+        # Recursivly look through symbols in parse
+        def recurs(obj, db):
+            def foreach(obj, db):
+                for each in obj:
+                    recurs(each, db)
 
+            id = repr(obj)
+            
+            if   isinstance(obj, parser.Namespace):
+                if obj.name == "":
+                    foreach(obj.content, db)
+                else:
+                    db[id] = {}
+                    foreach(obj.content, db[id])
+            elif isinstance(obj, parser.Class):
+                db[id] = {}
+                foreach(obj.ctors, db[id])
+                foreach(obj.methods, db[id])
+                foreach(obj.static_methods, db[id])
+                foreach(obj.properties, db[id])
+                foreach(obj.operators, db[id])
+                foreach(obj.enums, db[id])
+                foreach(obj.properties, db[id])
+            else:
+                db[id] = Symbol(obj)
 
-        # Dump namespace to file
-
-        ## wrapped_namespace, includes = self.wrap_namespace(module)
-        #namespace
-        #log.info(type(temp))
-        #log.info(temp)
-
-        #DEBUG
-        #exit()
-
-        ## Add to Symbol database
+        recurs(namespace, symboldb[module.name])
+        module.symbols = symboldb[module.name]
 
         ## If symbol supported, generate
+        
 
             ## If Function
 
@@ -119,7 +149,6 @@ def main():
                 ## cxx methods and members
 
         ## Else, record failure
-
         
 #TODO: interface script in wrap/scripts
 if __name__ == "__main__":

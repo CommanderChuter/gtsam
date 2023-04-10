@@ -122,7 +122,7 @@ class Namespace:
             return self.parent.top_level()
 
     def __str__(self) -> str:
-        return "Namespace: {} {{\n{}}}".format(self.name, "\n".join([str(x) for x in self.content]))
+        return "Namespace: {} {{\n{}\n}}".format(self.name, "\n".join([str(x) for x in self.content]))
     
     def __repr__(self) -> str:
         return "Namespace: {}".format(self.name)
