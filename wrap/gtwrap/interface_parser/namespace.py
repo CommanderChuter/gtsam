@@ -121,8 +121,11 @@ class Namespace:
         else:
             return self.parent.top_level()
 
+    def __str__(self) -> str:
+        return "Namespace: {} {{\n{}}}".format(self.name, "\n".join([str(x) for x in self.content]))
+    
     def __repr__(self) -> str:
-        return "Namespace: {}\n\t{}".format(self.name, self.content)
+        return "Namespace: {}".format(self.name)
 
     def full_namespaces(self) -> List["Namespace"]:
         """Get the full namespace list."""

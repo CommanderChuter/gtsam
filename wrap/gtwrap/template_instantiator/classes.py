@@ -73,16 +73,26 @@ class InstantiatedClass(parser.Class):
         )
 
     def __repr__(self):
-        return "{virtual}Class {cpp_class} : {parent_class}\n"\
-            "{ctors}\n{static_methods}\n{methods}\n{operators}".format(
-               virtual="virtual " if self.is_virtual else '',
-               cpp_class=self.to_cpp(),
-               parent_class=self.parent.name,
-               ctors="\n".join([repr(ctor) for ctor in self.ctors]),
-               static_methods="\n".join([repr(m)
-                                         for m in self.static_methods]),
-                methods="\n".join([repr(m) for m in self.methods]),
-               operators="\n".join([repr(op) for op in self.operators])
+        return "Class: {self.name}".format(self=self)
+
+    def __str__(self):
+        def export(list):
+            if list:
+                return ("\n".join([str(obj) for obj in list]))+"\n"
+            else:
+                return ""
+                
+        return "{virtual}Class {cpp_class} : {parent_class} {{\n"\
+            "{ctors}{static_methods}{methods}{operators}{enums}{properties}}}".format(
+                virtual="virtual " if self.is_virtual else '',
+                cpp_class=self.to_cpp(),
+                parent_class=self.parent.name,
+                ctors=export(self.ctors),
+                static_methods=export(self.static_methods),
+                methods=export(self.methods),
+                operators=export(self.operators),
+                enums=export(self.enums),
+                properties=export(self.properties)
             )
 
     def instantiate_parent_class(self, typenames):
