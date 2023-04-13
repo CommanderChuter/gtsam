@@ -7,7 +7,7 @@ All Rights Reserved
 See LICENSE for the license information
 
 Code generator for wrapping a C++ module for Rust
-Author: Duy Nguyen Ta, Fan Jiang, Matthew Sklar, Varun Agrawal, Frank Dellaert, and Ryker Chute
+Author: Ryker Chute
 """
 
 import os
@@ -36,20 +36,57 @@ class InterfaceModule():
         self.cpp_file = self.path / (self.name+".cpp")
         self.rust_file = self.path / (self.name+".rs")
         self.namespace_file = self.path / (self.name+".namespace")
-        self.symbols = {}
+
 
     def __repr__(self):
         return "{}::{}\n\t{}\n\t{}".format(self.top, self.name, self.path, self.original)
-    
-class Symbol():
-    def __init__(self, obj):
-        self.name = repr(obj)
-        self.status = False
-        self.obj = obj
 
-    def __repr__(self) -> str:
-        return self.name
-        
+
+def parse_file(namespace:parser.Namespace):
+    rsf = ""
+    cpf = ""
+    ns: list[str] = []
+    if namespace.name is not "":
+        log.error("Pass in file level namespace, not " + namespace.name)
+        raise Exception
+
+    # Setup module file
+    rsf += "mod ffi {\n"
+    rsf += "unsafe extern \"C++\" {\n"
+
+    # The only thing in file namespace should be other namespaces
+    for each in namespace.content:
+        if isinstance(each, parser.Namespace):
+            log.warning("Only expecting namespaces in top level, found " + type(each))
+            raise Exception
+        else:
+            parse_namespace(each, rsf, cpf, ns)
+
+    rsf += "}\n}\n"
+
+    return pretty_brackets(rsf), cpf
+
+def parse_namespace(namespace:parser.Namespace, rsf:str, cpf:str, ns: list):
+    # Add namespace to ns
+    ns.append(namespace.name)
+
+    # Setup rust file
+    rsf += "#[namespace = \"\"]\n"
+    rsf += "unsafe extern \"C++\" {\n"
+
+    for each in namespace.content:
+        if   isinstance(each, parser.Namespace):
+            parse_namespace(each, rsf, cpf, ns)
+        elif isinstance(each, parser.Include):
+            parse_include(each, rsf, cpf, ns)
+        elif isinstance(each, )
+
+
+    # Remove namespace from ns
+    ns.pop()
+
+def parse_include(include:parser.Include, rsf:str, cpf:str, ns:list):
+    rsf += "include!({})\n".format(include.header)
 
 def main():
     # Set up logging
@@ -64,16 +101,13 @@ def main():
         os.chdir(pwd_dir)
         
     ## Collect interface files
-    modules = []
+    modules: list[InterfaceModule] = []
     for root, dirs, files in os.walk(gtsam_dir):
         for file in files:
             if file.endswith(".i"):
                 module = InterfaceModule(Path(root) / file, gtsam_dir)
                 modules.append(module)
                 log.debug(module)
-    
-    ## Instaniate Symbol database
-    symboldb = {}
 
     ## For each interface file
     for module in modules:
@@ -91,65 +125,30 @@ def main():
         instantiator.instantiate_namespace(namespace)
 
         # Dump namespace to file with tabs
-        ns_raw = str(namespace)
-        ns_tab = ""
-        tab = 0
-        for line in ns_raw.splitlines():
-            if line.count("}"):
-                tab -= line.count("}")
-            ns_tab += (("\t"*tab)+line+"\n")
-            if line.count("{"):
-                tab += line.count("{")
+        ns_tab = pretty_brackets(str(namespace))
         with open(module.namespace_file, "w") as file:
             file.write(ns_tab)
 
-        ## Add to symbols to database
-        symboldb[module.name] = {}
+        ## Generate file strings
+        rs_str, cxx_str = parse_file(namespace)
 
-        # Recursivly look through symbols in parse
-        def recurs(obj, db):
-            def foreach(obj, db):
-                for each in obj:
-                    recurs(each, db)
+        with open(module.rust_file, 'w') as file:
+            file.write(rs_str)
+        with open(module.cpp_file, 'w') as file:
+            file.write(cxx_str)
 
-            id = repr(obj)
-            
-            if   isinstance(obj, parser.Namespace):
-                if obj.name == "":
-                    foreach(obj.content, db)
-                else:
-                    db[id] = {}
-                    foreach(obj.content, db[id])
-            elif isinstance(obj, parser.Class):
-                db[id] = {}
-                foreach(obj.ctors, db[id])
-                foreach(obj.methods, db[id])
-                foreach(obj.static_methods, db[id])
-                foreach(obj.properties, db[id])
-                foreach(obj.operators, db[id])
-                foreach(obj.enums, db[id])
-                foreach(obj.properties, db[id])
-            else:
-                db[id] = Symbol(obj)
 
-        recurs(namespace, symboldb[module.name])
-        module.symbols = symboldb[module.name]
+def pretty_brackets(input: str) -> str:
+    output = ""
+    tab = 0
+    for line in input.splitlines():
+        if line.count("}"):
+            tab -= line.count("}")
+        output += (("\t"*tab)+line+"\n")
+        if line.count("{"):
+            tab += line.count("{")
+    return output
 
-        ## If symbol supported, generate
-        
-
-            ## If Function
-
-                ## cxx
-
-            ## If Class
-
-                ## c++ constructor, destructor
-
-                ## cxx methods and members
-
-        ## Else, record failure
-        
 #TODO: interface script in wrap/scripts
 if __name__ == "__main__":
     main()
