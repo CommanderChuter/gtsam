@@ -59,8 +59,9 @@ def parse_file(namespace:parser.Namespace) -> ParseResults:
         raise Exception
  
     # Setup module file
-    rr.rs += "mod ffi {\n"
-    rr.rs += "unsafe extern \"C++\" {\n"
+    rr.rs += "use autocxx::prelude::*;\n"
+    rr.rs += "\n"
+    rr.rs += "include_cpp! {\n"
  
     # The only thing in file namespace should be other namespaces
     for each in namespace.content:
@@ -69,11 +70,11 @@ def parse_file(namespace:parser.Namespace) -> ParseResults:
             raise Exception
         else:
             parse_namespace(each, rr)
- 
-    rr.rs += "}\n}\n"
- 
+
+    rr.rs += "safety!(unsafe)\n"
+    rr.rs += "}\n"
+
     rr.rs = pretty_brackets(rr.rs)
-    rr.cpp = pretty_brackets(rr.cpp)
 
     return rr
  
@@ -88,19 +89,28 @@ def parse_namespace(namespace:parser.Namespace, rr:ParseResults):
             parse_include(each, rr)
         elif isinstance(each, instantiator.InstantiatedGlobalFunction):
             parse_global_function(each, rr)
+        elif isinstance(each, instantiator.InstantiatedClass):
+            parse_class(each, rr)
  
  
     # Remove namespace from ns
     rr.ns.pop()
  
 def parse_include(include:parser.Include, rr: ParseResults):
-    rr.rs += "include!(\"{}\")\n".format(include.header)
+    rr.rs += "#include \"{}\"\n".format(include.header)
+    #rr.rs += "\n"
  
 def parse_global_function(func:instantiator.InstantiatedGlobalFunction, rr: ParseResults):
     # Add Namespace
-    rr.rs += "\n"
-    rr.rs += "#[namespace = \"{}\"]\n".format("::".join(rr.ns))
-    rr.rs += "fn {}({}) -> {}\n".format(func.name, func.args, func.return_type)
+    ns = "::".join(rr.ns)
+    rr.rs += "generate!(\"{}\")\n".format(ns+func.name)
+    #rr.rs += "\n"
+
+def parse_class(cls:instantiator.InstantiatedClass, rr: ParseResults):
+    # Add Namespace
+    ns = "::".join(rr.ns)
+    rr.rs += "generate!(\"{}\")\n".format(ns+cls.name)
+    #rr.rs += "\n"
  
 def main():
     # Set up logging
@@ -122,13 +132,13 @@ def main():
     ## Collect interface files
     gtsam_src_dir = root_dir / "gtsam"
     modules: list[InterfaceModule] = []
-    for root, dirs, files in os.walk(gtsam_src_dir):
-        for file in files:
-            if file.endswith(".i"):
-                module = InterfaceModule(Path(root) / file, gtsam_src_dir)
-                modules.append(module)
-                log.debug(module)
-    #modules.append(InterfaceModule())
+    #for root, dirs, files in os.walk(gtsam_src_dir):
+    #    for file in files:
+    #        if file.endswith(".i"):
+    #            module = InterfaceModule(Path(root) / file, gtsam_src_dir)
+    #            modules.append(module)
+    #            log.debug(module)
+    modules.append(InterfaceModule(gtsam_src_dir/"geometry"/"geometry.i", gtsam_src_dir))
  
     ## For each interface file
     for module in modules:
