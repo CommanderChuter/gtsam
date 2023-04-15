@@ -48,7 +48,6 @@ class ParseResults():
 
     def __init__(self):
         self.rs: str = ""
-        self.cpp: str = ""
         self.ns: list[str] = []
 
  
@@ -59,8 +58,8 @@ def parse_file(namespace:parser.Namespace) -> ParseResults:
         raise Exception
  
     # Setup module file
-    rr.rs += "use autocxx::prelude::*;\n"
-    rr.rs += "\n"
+    #rr.rs += "use autocxx::prelude::*;\n"
+    #rr.rs += "\n"
     rr.rs += "include_cpp! {\n"
  
     # The only thing in file namespace should be other namespaces
@@ -139,7 +138,10 @@ def main():
     #            modules.append(module)
     #            log.debug(module)
     modules.append(InterfaceModule(gtsam_src_dir/"geometry"/"geometry.i", gtsam_src_dir))
- 
+
+    lib_file = Path("gtsam_sys")/"src"/"lib.rs"
+    lib_str = "use autocxx::prelude::*;\n\n"
+
     ## For each interface file
     for module in modules:
  
@@ -160,14 +162,23 @@ def main():
         with open(module.namespace_file, "w") as file:
             file.write(ns_tab)
  
-        ## Generate file strings
+        ## Generate autocxx file
         results = parse_file(namespace)
- 
         with open(module.rust_file, 'w') as file:
             file.write(results.rs)
-        with open(module.cpp_file, 'w') as file:
-            file.write(results.cpp)
- 
+
+        ## Add parse results to lib.rs
+        header = "// {} //".format(module.name)
+        header_guard = "/"*len(header)
+        lib_str += (header_guard + "\n")
+        lib_str += (header + "\n")
+        lib_str += (header_guard + "\n")
+        lib_str += "\n"+results.rs+"\n"
+
+    with open(lib_file, 'w') as file:
+        file.write(lib_str)
+    
+
  
 def pretty_brackets(input: str) -> str:
     output = ""
