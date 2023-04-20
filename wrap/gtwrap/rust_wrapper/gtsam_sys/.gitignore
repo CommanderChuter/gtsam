@@ -2,3 +2,4 @@ Cargo.lock
 target/
 gen/
 src/gtsam
+!build.rs

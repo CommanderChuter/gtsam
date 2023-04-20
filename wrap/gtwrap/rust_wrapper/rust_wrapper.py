@@ -49,6 +49,8 @@ class ParseResults():
     def __init__(self):
         self.rs: str = ""
         self.ns: list[str] = []
+        self.include: list[str] = []
+        self.generate: list[str] = []
 
  
 def parse_file(namespace:parser.Namespace) -> ParseResults:
@@ -69,6 +71,11 @@ def parse_file(namespace:parser.Namespace) -> ParseResults:
             raise Exception
         else:
             parse_namespace(each, rr)
+
+    for each in rr.include:
+        rr.rs += each
+    for each in rr.generate:
+        rr.rs += each
 
     rr.rs += "safety!(unsafe)\n"
     rr.rs += "}\n"
@@ -96,19 +103,19 @@ def parse_namespace(namespace:parser.Namespace, rr:ParseResults):
     rr.ns.pop()
  
 def parse_include(include:parser.Include, rr: ParseResults):
-    rr.rs += "#include \"{}\"\n".format(include.header)
+    rr.include.append("#include \"{}\"\n".format(include.header))
     #rr.rs += "\n"
  
 def parse_global_function(func:instantiator.InstantiatedGlobalFunction, rr: ParseResults):
     # Add Namespace
     ns = "::".join(rr.ns)
-    rr.rs += "generate!(\"{}\")\n".format(ns+func.name)
+    rr.generate.append("generate!(\"{}\")\n".format(ns+func.name))
     #rr.rs += "\n"
 
 def parse_class(cls:instantiator.InstantiatedClass, rr: ParseResults):
     # Add Namespace
     ns = "::".join(rr.ns)
-    rr.rs += "generate!(\"{}\")\n".format(ns+cls.name)
+    rr.generate.append("generate!(\"{}\")\n".format(ns+cls.name))
     #rr.rs += "\n"
  
 def main():
